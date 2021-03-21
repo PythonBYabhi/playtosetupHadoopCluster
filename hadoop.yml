@@ -1,0 +1,108 @@
+- hosts: HadoopCluster
+  vars_prompt:
+          - name: nmip
+            prompt: "Enter the IP of Instance on which you want to setup Namenode(Must be from Inventory)"
+            private: no
+  tasks:
+    - name: "Creating workspace"
+      file:
+              path: /hadoopws
+              state: directory
+              mode:  0755
+    - name: "Downloading Java Software"
+      get_url:
+        url: https://softwareforarth.s3.ap-south-1.amazonaws.com/jdk-8u171-linux-x64.rpm
+        dest: /hadoopws
+        mode: '777'
+
+    - name: "Downloading Hadoop Software"
+      get_url:
+        url: https://softwareforarth.s3.ap-south-1.amazonaws.com/hadoop-1.2.1-1.x86_64.rpm
+        dest: /hadoopws
+        mode: '777'
+    - name: "Installing Java"
+      yum:
+          name: /hadoopws/jdk-8u171-linux-x64.rpm
+          state: present
+
+    - name: "Installing Hadoop"
+      command: "rpm -i /hadoopws/hadoop-1.2.1-1.x86_64.rpm --force"
+
+    - name: "Stopping Firewall"
+      command: "systemctl stop firewalld"
+
+
+- hosts: namenode
+  tasks:
+    - name: "Creating a directory for namenode"
+      file:
+        path: /namenode
+        state: directory
+        mode:  0755
+    
+    - name: "Configuring Hdfs file"
+      blockinfile:
+        path: /etc/hadoop/hdfs-site.xml
+        insertafter: "<configuration>"
+        block: |
+              <property>
+              <name>dfs.data.dir</name>
+              <value>/namenode</value>
+              </property>
+
+
+    - name: "Configuring Core Site file"
+      blockinfile:
+        path: /etc/hadoop/core-site.xml
+        insertafter: "<configuration>"
+        block: |
+              <property>
+              <name>fs.default.name</name>
+              <value>hdfs://{{ nmip }}:9001</value>
+              </property>
+                            
+                            
+                            
+                            
+                            
+    - name: "Formatting Nmaenode"
+      shell: "echo Y | hadoop namenode -format"
+      register: format
+    - debug:
+            var: format
+
+    - name: "Starting Namenode"
+      command: "hadoop-daemon.sh start namenode"
+
+
+- hosts: datanode
+  tasks:
+          - name: "Creating directory for datanode"
+            file:
+                    path: /datanode
+                    state: directory
+                    mode: 0755
+
+          - name: "Configuring HDFS file"
+            blockinfile:
+                    path: /etc/hadoop/hdfs-site.xml
+                    insertafter: "<configuration>"
+                    block: |
+                            <property>
+                            <name>dfs.data.dir</name>
+                            <value>/datanode</value>
+                            </property>
+
+          - name: "Configuring Core Site.xml"
+            blockinfile:
+                    path: /etc/hadoop/core-site.xml
+                    insertafter: "<configuration>"
+                    block: |
+                            <property>
+                            <name>fs.default.data</name>
+                            <value>{{ nmip }}:9001</value>
+                            </property>
+
+          - name: "Starting DataNode"
+            command: "hadoop-daemon.sh start datanode"
+
