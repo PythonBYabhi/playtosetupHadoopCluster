@@ -1,6 +1,7 @@
 # playtosetupHadoopCluster
 Here I am publishing an ansible playbook, which can be easily used to setup hadoop cluster
 
+Note: Do mention the location of SSH file and username by unhashing first five two six rows in ansible.cfg file of this repo, If your instances do not have a default password less authenication.
 ## How To Use This Repo
 
 Step 1:- Clone this repo in your system.
