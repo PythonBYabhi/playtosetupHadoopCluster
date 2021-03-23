@@ -1,8 +1,4 @@
-- hosts: HadoopCluster
-  vars_prompt:
-          - name: nmip
-            prompt: "Enter the IP of Instance on which you want to setup Namenode(Must be from Inventory)"
-            private: no
+- hosts: all
   tasks:
     - name: "Creating workspace"
       file:
@@ -24,15 +20,21 @@
       yum:
           name: /hadoopws/jdk-8u171-linux-x64.rpm
           state: present
+          disable_gpg_check: yes
 
     - name: "Installing Hadoop"
       command: "rpm -i /hadoopws/hadoop-1.2.1-1.x86_64.rpm --force"
 
     - name: "Stopping Firewall"
-      command: "systemctl stop firewalld"
+      command: "systemctl disable firewalld"
+      ignore_errors: yes
 
 
 - hosts: namenode
+  vars_prompt:
+          - name: nmip
+            prompt: "Enter the IP of Instance on which you want to setup Namenode(Must be from Inventory)"
+            private: no
   tasks:
     - name: "Creating a directory for namenode"
       file:
@@ -76,6 +78,10 @@
 
 
 - hosts: datanode
+  vars_prompt:
+          - name: nmip
+            prompt: "Enter the IP of Instance on which you want to setup Namenode(Must be from Inventory)"
+            private: no
   tasks:
           - name: "Creating directory for datanode"
             file:
@@ -99,8 +105,8 @@
                     insertafter: "<configuration>"
                     block: |
                             <property>
-                            <name>fs.default.data</name>
-                            <value>{{ nmip }}:9001</value>
+                            <name>fs.default.name</name>
+                            <value>hdfs://{{ nmip }}:9001</value>
                             </property>
 
           - name: "Starting DataNode"
